@@ -44,11 +44,13 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Yellow"]
 
 def get_available_cameras():
+    """Gets a list of available camera indices using DirectShow for Windows."""
     index = 0
     arr = []
     while True:
-        cap = cv2.VideoCapture(index)
+        cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)  # Use DirectShow for Windows
         if not cap.read()[0]:
+            cap.release()
             break
         else:
             arr.append(index)
@@ -85,8 +87,9 @@ cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 
 cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 2, cv2.LINE_AA)
 
 # Initialize the video capture object if a camera is selected
+cap = None
 if selected_camera is not None:
-    cap = cv2.VideoCapture(selected_camera)
+    cap = cv2.VideoCapture(selected_camera, cv2.CAP_DSHOW)
     
     if not cap.isOpened():
         st.error(f"Error: Unable to open camera with index {selected_camera}. Please check your camera connection and try again.")
