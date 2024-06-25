@@ -4,6 +4,21 @@ import mediapipe as mp
 from collections import deque
 import streamlit as st
 
+# --- Camera Access Check ---
+# Modified this section to check camera access
+def get_available_cameras():
+    #... (this function code remains the same)
+
+available_cameras = get_available_cameras()
+if not available_cameras:
+    st.error("No camera found. Please check your camera connections and permissions.")
+
+selected_camera = st.sidebar.selectbox(
+    "Select Camera", 
+    available_cameras,
+    index=0 if available_cameras else None
+)
+
 # --- Page Configuration ---
 st.set_page_config(page_title="Air Canvas", page_icon="🎨", layout="wide")
 
