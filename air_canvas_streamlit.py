@@ -22,8 +22,10 @@ available_cameras = get_available_cameras()
 if not available_cameras:
     st.error("No camera found. Please check your camera connections and permissions.")
 
+
 # --- Page Configuration ---
 st.set_page_config(page_title="Air Canvas", page_icon="🎨", layout="wide")
+
 
 # --- Header and Description ---
 st.title("Air Canvas 🎨")
@@ -63,11 +65,10 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Yellow"]
 
 # --- Sidebar Controls ---
-st.sidebar.title("Control Panel 🕹️")
 selected_camera = st.sidebar.selectbox(
     "Select Camera",
     available_cameras,
-    index=0 if available_cameras else None
+    index=0 if available_cameras else None,
 )
 color_index = st.sidebar.selectbox("Color", range(len(colors)), format_func=lambda x: color_names[x])
 if st.sidebar.button("Clear Canvas"):
