@@ -43,7 +43,7 @@ def get_available_cameras():
     index = 0
     arr = []
     while True:
-        cap = cv2.VideoCapture(index)  
+        cap = cv2.VideoCapture(index)
         if not cap.read()[0]:
             break
         else:
@@ -78,7 +78,6 @@ cv2.putText(paintWindow, "BLUE", (185, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,
 cv2.putText(paintWindow, "GREEN", (298, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150,150,150), 2, cv2.LINE_AA)
-
 
 if selected_camera is not None:
     cap = cv2.VideoCapture(selected_camera)  
@@ -137,4 +136,35 @@ if selected_camera is not None:
                                 color_index = 1  # Green
                             elif 390 <= cx <= 485:
                                 color_index = 2  # Red
-                            elif
+                            elif 505 <= cx <= 600:
+                                color_index = 3  #
+ # Append the detected finger tip coordinates to respective color deques.
+    if color_index == 0:
+        bpoints.appendleft((cx, cy))
+    elif color_index == 1:
+        gpoints.appendleft((cx, cy))
+    elif color_index == 2:
+        rpoints.appendleft((cx, cy))
+    elif color_index == 3:
+        ypoints.appendleft((cx, cy))
+
+    # Draw lines on the canvas based on the detected points.
+    points = [bpoints, gpoints, rpoints, ypoints]
+    for i in range(len(points)):
+        for j in range(1, len(points[i])):
+            if points[i][j - 1] is None or points[i][j] is None:
+                continue
+            cv2.line(image, points[i][j - 1], points[i][j], colors[i], 2)
+
+    # Combine the paint window and camera feed images for display.
+    combined_image = np.vstack((paintWindow, image))
+
+    # Display the frame using Streamlit.
+    frame_placeholder.image(combined_image, channels="RGB")
+
+cap.release()
+
+
+
+
+
