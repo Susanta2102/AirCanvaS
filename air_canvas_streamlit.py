@@ -4,6 +4,7 @@ import mediapipe as mp
 from collections import deque
 import streamlit as st
 
+# Streamlit page configuration
 st.set_page_config(page_title="Air Canvas", page_icon="🎨", layout="wide")
 st.title("Air Canvas 🎨")
 st.write("Unleash your creativity and draw on the virtual canvas using just your hand gestures!")
@@ -12,6 +13,7 @@ st.write("- Use your index finger as the drawing tool.")
 st.write("- Raise your thumb to activate the drawing mode.")
 st.write("- Select colors and clear the canvas from the sidebar.")
 
+# Sidebar with developer info
 with st.sidebar.expander("About the Developers ✨"):
     for dev in [
         ("Susanta Baidya", "https://www.linkedin.com/in/susanta-baidya-03436628a/"),
@@ -21,6 +23,7 @@ with st.sidebar.expander("About the Developers ✨"):
     ]:
         st.write(f"- [{dev[0]}]({dev[1]})")
 
+# Sidebar with information about the app
 with st.sidebar.expander("About Air Canvas 🖌️"):
     st.write(
         """
@@ -29,17 +32,16 @@ with st.sidebar.expander("About Air Canvas 🖌️"):
         """
     )
 
+# Initialize Mediapipe hands and drawing utilities
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
 mp_draw = mp.solutions.drawing_utils
 
+# Initialize points for different colors
 bpoints, gpoints, rpoints, ypoints = [deque(maxlen=1024) for _ in range(4)]
 color_index = 0
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Yellow"]
-
-# Initialize cap outside the conditional block
-cap = None
 
 def get_available_cameras():
     index = 0
@@ -53,7 +55,8 @@ def get_available_cameras():
         cap.release()
         index += 1
     return arr
- 
+
+# Get available cameras
 available_cameras = get_available_cameras()
 if not available_cameras:
     st.error("No camera found. Please check your camera connections and permissions.")
@@ -79,32 +82,38 @@ cv2.putText(paintWindow, "CLEAR ALL", (49, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (
 cv2.putText(paintWindow, "BLUE", (185, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 cv2.putText(paintWindow, "GREEN", (298, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
-cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150,150,150), 2, cv2.LINE_AA)
+cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 2, cv2.LINE_AA)
 
+# Initialize the video capture object if a camera is selected
 if selected_camera is not None:
-    cap = cv2.VideoCapture(selected_camera)  
+    cap = cv2.VideoCapture(selected_camera)
+    
+    if not cap.isOpened():
+        st.error(f"Error: Unable to open camera with index {selected_camera}. Please check your camera connection and try again.")
+        cap = None
+
     frame_placeholder = st.empty()
     paint_placeholder = st.empty()
 
-    while cap.isOpened():
+    while cap and cap.isOpened():
         success, image = cap.read()
         if not success:
             st.error("Ignoring empty camera frame.")
-            continue
+            break
             
-        # Flip the image horizontally for a selfie-view display.
+        # Flip the image horizontally for a selfie-view display
         image = cv2.flip(image, 1)
         
-        # Convert the BGR image to RGB.
+        # Convert the BGR image to RGB
         imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Process the image and find hand landmarks.
+        # Process the image and find hand landmarks
         results = hands.process(imageRGB)
 
-        # If hand landmarks are found:
+        # If hand landmarks are found
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
-                # Draw landmarks on the image.
+                # Draw landmarks on the image
                 mp_draw.draw_landmarks(
                     image,
                     hand_landmarks,
@@ -113,18 +122,18 @@ if selected_camera is not None:
                     mp_draw.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2),
                 )
 
-                # Iterate through each landmark.
+                # Iterate through each landmark
                 for id, lm in enumerate(hand_landmarks.landmark):
-                    # Get image dimensions and landmark coordinates.
+                    # Get image dimensions and landmark coordinates
                     h, w, c = image.shape
                     cx, cy = int(lm.x * w), int(lm.y * h)
                     
-                    # If landmark is the tip of the index finger:
+                    # If landmark is the tip of the index finger
                     if id == 8:
-                        # Draw a circle at the index finger tip.
+                        # Draw a circle at the index finger tip
                         cv2.circle(image, (cx, cy), 10, (0, 255, 255), cv2.FILLED)
                         
-                        # If finger tip is within the control panel area:
+                        # If finger tip is within the control panel area
                         if cy <= 65:
                             if 40 <= cx <= 140:  # Clear Button
                                 bpoints = [deque(maxlen=512)]
@@ -141,7 +150,7 @@ if selected_camera is not None:
                             elif 505 <= cx <= 600:
                                 color_index = 3  # Yellow
 
-        # Append the detected finger tip coordinates to respective color deques.
+        # Append the detected finger tip coordinates to respective color deques
         if color_index == 0:
             bpoints.appendleft((cx, cy))
         elif color_index == 1:
@@ -151,7 +160,7 @@ if selected_camera is not None:
         elif color_index == 3:
             ypoints.appendleft((cx, cy))
 
-        # Draw lines on the canvas based on the detected points.
+        # Draw lines on the canvas based on the detected points
         points = [bpoints, gpoints, rpoints, ypoints]
         for i in range(len(points)):
             for j in range(1, len(points[i])):
@@ -159,12 +168,8 @@ if selected_camera is not None:
                     continue
                 cv2.line(image, points[i][j - 1], points[i][j], colors[i], 2)
 
-        # Combine the paint window and camera feed images for display.
-        combined_image = np.vstack((paintWindow, image))
+        # Display the processed image with landmarks and drawing on the Streamlit app
+        frame_placeholder.image(image, channels='RGB', use_column_width=True)
 
-        # Display the frame using Streamlit.
-        frame_placeholder.image(combined_image, channels="RGB")
-
+    # Release the camera resource after the main loop
     cap.release()
-else:
-    st.error("No camera found. Please check your camera connections and permissions.")
