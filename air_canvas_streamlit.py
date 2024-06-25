@@ -7,7 +7,17 @@ import streamlit as st
 # --- Camera Access Check ---
 # Modified this section to check camera access
 def get_available_cameras():
-    #... (this function code remains the same)
+    index = 0
+    arr = []
+    while True:
+        cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)  # Add CAP_DSHOW for some systems
+        if not cap.read()[0]:
+            break
+        else:
+            arr.append(index)
+        cap.release()
+        index += 1
+    return arr
 
 available_cameras = get_available_cameras()
 if not available_cameras:
