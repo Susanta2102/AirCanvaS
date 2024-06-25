@@ -4,176 +4,151 @@ import mediapipe as mp
 from collections import deque
 import streamlit as st
 
-# Set up Streamlit
-st.set_page_config(page_title="Air Canvas with Mediapipe", page_icon=":art:", layout="wide")
-st.title("Air Canvas with Mediapipe :art:")
-st.write("Draw on the canvas using your hand movements. Use the sidebar to select colors and clear the canvas.")
+# --- Page Configuration ---
+st.set_page_config(page_title="Air Canvas", page_icon="🎨", layout="wide")
 
-# Developer section as buttons
-st.sidebar.title("About the Developers")
-if st.sidebar.button("Susanta Baidya"):
-    st.sidebar.write("[LinkedIn](https://www.linkedin.com/in/susanta-baidya-03436628a/)")
-if st.sidebar.button("Divyanshu Mittal"):
-    st.sidebar.write("[LinkedIn](https://www.linkedin.com/in/divyanshu-mittal-4b652228a/)")
-if st.sidebar.button("Manaswini Gupta"):
-    st.sidebar.write("[LinkedIn](https://www.linkedin.com/in/manaswini-gupta-1a698827b/)")
-if st.sidebar.button("Subhi Arjaria"):
-    st.sidebar.write("[LinkedIn](https://www.linkedin.com/in/subhi-arjaria-279336237/)")
+# --- Header and Description ---
+st.title("Air Canvas 🎨")
+st.write("Unleash your creativity and draw on the virtual canvas using just your hand gestures!")
+st.write("**Instructions:**")
+st.write("- Use your index finger as the drawing tool.")
+st.write("- Raise your thumb to activate the drawing mode.")
+st.write("- Select colors and clear the canvas from the sidebar.")
 
-# Project section as a button
-st.sidebar.title("About the Project")
-if st.sidebar.button("Air Canvas Project"):
-    st.sidebar.write("Air Canvas is a project that allows users to draw on a digital canvas using hand gestures captured by a webcam. It utilizes the Mediapipe library for hand detection and tracking. Users can select different colors and clear the canvas using the sidebar controls.")
+# --- Developer and Project Information (Sidebar) ---
+with st.sidebar.expander("About the Developers ✨"):
+    for dev in [
+        ("Susanta Baidya", "https://www.linkedin.com/in/susanta-baidya-03436628a/"),
+        ("Divyanshu Mittal", "https://www.linkedin.com/in/divyanshu-mittal-4b652228a/"),
+        ("Manaswini Gupta", "https://www.linkedin.com/in/manaswini-gupta-1a698827b/"),
+        ("Subhi Arjaria", "https://www.linkedin.com/in/subhi-arjaria-279336237/"),
+    ]:
+        st.write(f"- [{dev[0]}]({dev[1]})")
 
-# Initialize mediapipe
-mpHands = mp.solutions.hands
-hands = mpHands.Hands(max_num_hands=1, min_detection_confidence=0.7)
-mpDraw = mp.solutions.drawing_utils
+with st.sidebar.expander("About Air Canvas 🖌️"):
+    st.write(
+        """
+        Air Canvas leverages the power of Mediapipe for hand tracking to create a fun and interactive drawing experience. 
+        Let your imagination flow and explore the world of digital art with this innovative tool!
+        """
+    )
 
-# Initialize the points deque for different colors
-bpoints = [deque(maxlen=1024)]
-gpoints = [deque(maxlen=1024)]
-rpoints = [deque(maxlen=1024)]
-ypoints = [deque(maxlen=1024)]
+# --- Initialization ---
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
+mp_draw = mp.solutions.drawing_utils
 
-# Indexes for points
-blue_index = 0
-green_index = 0
-red_index = 0
-yellow_index = 0
-
-# Colors in BGR format
+# Drawing Settings
+bpoints, gpoints, rpoints, ypoints = [deque(maxlen=1024) for _ in range(4)]
+color_index = 0
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Yellow"]
-colorIndex = 0
 
-# Sidebar for color selection and clear button
-st.sidebar.title("Controls")
-colorIndex = st.sidebar.radio("Choose Color", [0, 1, 2, 3], format_func=lambda x: color_names[x])
-clear_button = st.sidebar.button("Clear Canvas")
-stop_button = st.sidebar.button("Stop")
+# --- Sidebar Controls ---
+st.sidebar.title("Control Panel 🕹️")
+color_index = st.sidebar.selectbox("Color", range(len(colors)), format_func=lambda x: color_names[x])
+if st.sidebar.button("Clear Canvas"):
+    paintWindow[67:, :, :] = 255
+    bpoints, gpoints, rpoints, ypoints = [deque(maxlen=1024) for _ in range(4)]
 
-# Canvas setup
-paintWindow = np.zeros((471, 636, 3), dtype=np.uint8) + 255
-paintWindow = cv2.rectangle(paintWindow, (40, 1), (140, 65), (0, 0, 0), 2)
-paintWindow = cv2.rectangle(paintWindow, (160, 1), (255, 65), (255, 0, 0), 2)
-paintWindow = cv2.rectangle(paintWindow, (275, 1), (370, 65), (0, 255, 0), 2)
-paintWindow = cv2.rectangle(paintWindow, (390, 1), (485, 65), (0, 0, 255), 2)
-paintWindow = cv2.rectangle(paintWindow, (505, 1), (600, 65), (0, 255, 255), 2)
-cv2.putText(paintWindow, "CLEAR", (49, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-cv2.putText(paintWindow, "BLUE", (185, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-cv2.putText(paintWindow, "GREEN", (298, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
 
-# Start the webcam
+# --- Video Capture and Processing ---
 cap = cv2.VideoCapture(0)
 
-# Streamlit video frame placeholder
+# --- Canvas Setup ---
+paintWindow = np.zeros((471, 636, 3), dtype=np.uint8) + 255
+paintWindow = cv2.rectangle(paintWindow, (40, 1), (140, 65), (0, 0, 0), 2)
+paintWindow = cv2.rectangle(paintWindow, (160, 1), (255, 65), colors[0], -1)
+paintWindow = cv2.rectangle(paintWindow, (275, 1), (370, 65), colors[1], -1)
+paintWindow = cv2.rectangle(paintWindow, (390, 1), (485, 65), colors[2], -1)
+paintWindow = cv2.rectangle(paintWindow, (505, 1), (600, 65), colors[3], -1)
+cv2.putText(paintWindow, "CLEAR ALL", (49, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+cv2.putText(paintWindow, "BLUE", (185, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+cv2.putText(paintWindow, "GREEN", (298, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150,150,150), 2, cv2.LINE_AA)
+
+# --- Main Streamlit Loop ---
 frame_placeholder = st.empty()
 paint_placeholder = st.empty()
-
 while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
+    success, image = cap.read()
+    if not success:
         break
 
-    frame = cv2.flip(frame, 1)
-    framergb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = cv2.flip(image, 1)
+    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = hands.process(imageRGB)
 
-    # Add button rectangles to the frame
-    frame = cv2.rectangle(frame, (40, 1), (140, 65), (0, 0, 0), 2)
-    frame = cv2.rectangle(frame, (160, 1), (255, 65), (255, 0, 0), 2)
-    frame = cv2.rectangle(frame, (275, 1), (370, 65), (0, 255, 0), 2)
-    frame = cv2.rectangle(frame, (390, 1), (485, 65), (0, 0, 255), 2)
-    frame = cv2.rectangle(frame, (505, 1), (600, 65), (0, 255, 255), 2)
-    cv2.putText(frame, "CLEAR", (49, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-    cv2.putText(frame, "BLUE", (185, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-    cv2.putText(frame, "GREEN", (298, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-    cv2.putText(frame, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
-    cv2.putText(frame, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_draw.draw_landmarks(
+                image,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_draw.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
+                mp_draw.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2),
+            )
+            
+            for id, lm in enumerate(hand_landmarks.landmark):
+                h, w, c = image.shape
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                if id == 8:
+                    cv2.circle(image, (cx, cy), 10, (0, 255, 255), cv2.FILLED)
+                    if cy <= 65:
+                        if 40 <= cx <= 140:  # Clear Button
+                            bpoints = [deque(maxlen=512)]
+                            gpoints = [deque(maxlen=512)]
+                            rpoints = [deque(maxlen=512)]
+                            ypoints = [deque(maxlen=512)]
+                            paintWindow[67:, :, :] = 255
+                        elif 160 <= cx <= 255:
+                            color_index = 0
+                        elif 275 <= cx <= 370:
+                            color_index = 1
+                        elif 390 <= cx <= 485:
+                            color_index = 2
+                        elif 505 <= cx <= 600:
+                            color_index = 3
+                    else :
+                        bpoints[blue_index].appendleft((cx, cy))
+                elif id == 4:
+                    cv2.circle(image, (cx, cy), 5, (0, 255, 255), cv2.FILLED)
 
-    result = hands.process(framergb)
-    if result.multi_hand_landmarks:
-        landmarks = []
-        for handslms in result.multi_hand_landmarks:
-            for lm in handslms.landmark:
-                lmx = int(lm.x * 640)
-                lmy = int(lm.y * 480)
-                landmarks.append([lmx, lmy])
+    for i in range(len(bpoints)):
+        for j in range(1, len(bpoints[i])):
+            if bpoints[i][j - 1] is None or bpoints[i][j] is None:
+                continue
+            cv2.line(paintWindow, bpoints[i][j - 1], bpoints[i][j], colors[0], 8)
+            cv2.line(image, bpoints[i][j - 1], bpoints[i][j], colors[0], 8)
 
-            mpDraw.draw_landmarks(frame, handslms, mpHands.HAND_CONNECTIONS)
+    for i in range(len(gpoints)):
+        for j in range(1, len(gpoints[i])):
+            if gpoints[i][j - 1] is None or gpoints[i][j] is None:
+                continue
+            cv2.line(paintWindow, gpoints[i][j - 1], gpoints[i][j], colors[1], 8)
+            cv2.line(image, gpoints[i][j - 1], gpoints[i][j], colors[1], 8)
 
-        fore_finger = (landmarks[8][0], landmarks[8][1])
-        center = fore_finger
-        thumb = (landmarks[4][0], landmarks[4][1])
-        cv2.circle(frame, center, 3, (0, 255, 0), -1)
+    for i in range(len(rpoints)):
+        for j in range(1, len(rpoints[i])):
+            if rpoints[i][j - 1] is None or rpoints[i][j] is None:
+                continue
+            cv2.line(paintWindow, rpoints[i][j - 1], rpoints[i][j], colors[2], 8)
+            cv2.line(image, rpoints[i][j - 1], rpoints[i][j], colors[2], 8)
 
-        if thumb[1] - center[1] < 30:
-            bpoints.append(deque(maxlen=512))
-            blue_index += 1
-            gpoints.append(deque(maxlen=512))
-            green_index += 1
-            rpoints.append(deque(maxlen=512))
-            red_index += 1
-            ypoints.append(deque(maxlen=512))
-            yellow_index += 1
+    for i in range(len(ypoints)):
+        for j in range(1, len(ypoints[i])):
+            if ypoints[i][j - 1] is None or ypoints[i][j] is None:
+                continue
+            cv2.line(paintWindow, ypoints[i][j - 1], ypoints[i][j], colors[3], 8)
+            cv2.line(image, ypoints[i][j - 1], ypoints[i][j], colors[3], 8)
 
-        elif center[1] <= 65:
-            if 40 <= center[0] <= 140:  # Clear Button
-                bpoints = [deque(maxlen=512)]
-                gpoints = [deque(maxlen=512)]
-                rpoints = [deque(maxlen=512)]
-                ypoints = [deque(maxlen=512)]
-                blue_index = 0
-                green_index = 0
-                red_index = 0
-                yellow_index = 0
-                paintWindow[67:, :, :] = 255
-        else:
-            if colorIndex == 0:
-                bpoints[blue_index].appendleft(center)
-            elif colorIndex == 1:
-                gpoints[green_index].appendleft(center)
-            elif colorIndex == 2:
-                rpoints[red_index].appendleft(center)
-            elif colorIndex == 3:
-                ypoints[yellow_index].appendleft(center)
-    else:
-        bpoints.append(deque(maxlen=512))
-        blue_index += 1
-        gpoints.append(deque(maxlen=512))
-        green_index += 1
-        rpoints.append(deque(maxlen=512))
-        red_index += 1
-        ypoints.append(deque(maxlen=512))
-        yellow_index += 1
 
-    points = [bpoints, gpoints, rpoints, ypoints]
-    for i in range(len(points)):
-        for j in range(len(points[i])):
-            for k in range(1, len(points[i][j])):
-                if points[i][j][k - 1] is None or points[i][j][k] is None:
-                    continue
-                cv2.line(frame, points[i][j][k - 1], points[i][j][k], colors[i], 2)
-                cv2.line(paintWindow, points[i][j][k - 1], points[i][j][k], colors[i], 2)
-
-    frame_placeholder.image(frame, channels="BGR")
+    # Display the frame and paint window
+    frame_placeholder.image(image, channels="BGR")
     paint_placeholder.image(paintWindow, channels="BGR")
+    
 
-    if clear_button:
-        bpoints = [deque(maxlen=512)]
-        gpoints = [deque(maxlen=512)]
-        rpoints = [deque(maxlen=512)]
-        ypoints = [deque(maxlen=512)]
-        blue_index = 0
-        green_index = 0
-        red_index = 0
-        yellow_index = 0
-        paintWindow[67:, :, :] = 255
-
-    if stop_button:
-        break
 
 cap.release()
 cv2.destroyAllWindows()
