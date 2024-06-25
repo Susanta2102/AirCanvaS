@@ -5,7 +5,6 @@ from collections import deque
 import streamlit as st
 
 # --- Camera Access Check ---
-# Modified this section to check camera access
 def get_available_cameras():
     index = 0
     arr = []
@@ -22,12 +21,6 @@ def get_available_cameras():
 available_cameras = get_available_cameras()
 if not available_cameras:
     st.error("No camera found. Please check your camera connections and permissions.")
-
-selected_camera = st.sidebar.selectbox(
-    "Select Camera", 
-    available_cameras,
-    index=0 if available_cameras else None
-)
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Air Canvas", page_icon="🎨", layout="wide")
@@ -71,14 +64,15 @@ color_names = ["Blue", "Green", "Red", "Yellow"]
 
 # --- Sidebar Controls ---
 st.sidebar.title("Control Panel 🕹️")
+selected_camera = st.sidebar.selectbox(
+    "Select Camera",
+    available_cameras,
+    index=0 if available_cameras else None
+)
 color_index = st.sidebar.selectbox("Color", range(len(colors)), format_func=lambda x: color_names[x])
 if st.sidebar.button("Clear Canvas"):
     paintWindow[67:, :, :] = 255
     bpoints, gpoints, rpoints, ypoints = [deque(maxlen=1024) for _ in range(4)]
-
-
-# --- Video Capture and Processing ---
-cap = cv2.VideoCapture(0)
 
 # --- Canvas Setup ---
 paintWindow = np.zeros((471, 636, 3), dtype=np.uint8) + 255
@@ -94,12 +88,19 @@ cv2.putText(paintWindow, "RED", (420, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 
 cv2.putText(paintWindow, "YELLOW", (520, 33), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150,150,150), 2, cv2.LINE_AA)
 
 # --- Main Streamlit Loop ---
-frame_placeholder = st.empty()
-paint_placeholder = st.empty()
-while cap.isOpened():
-    success, image = cap.read()
-    if not success:
-        break
+# Check if a camera is selected
+if selected_camera is not None:
+    cap = cv2.VideoCapture(selected_camera)  # Use selected_camera index
+    frame_placeholder = st.empty()
+    paint_placeholder = st.empty()
+
+    while cap.isOpened():
+        success, image = cap.read()
+        if not success:
+            st.error("Ignoring empty camera frame.")
+            continue
+        # ... (rest of your drawing code remains the same)
+
 
     image = cv2.flip(image, 1)
     imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
