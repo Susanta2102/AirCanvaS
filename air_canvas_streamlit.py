@@ -38,6 +38,8 @@ color_index = 0
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 color_names = ["Blue", "Green", "Red", "Yellow"]
 
+# Initialize cap outside the conditional block
+cap = None
 
 def get_available_cameras():
     index = 0
@@ -137,34 +139,32 @@ if selected_camera is not None:
                             elif 390 <= cx <= 485:
                                 color_index = 2  # Red
                             elif 505 <= cx <= 600:
-                                color_index = 3  #
- # Append the detected finger tip coordinates to respective color deques.
-    if color_index == 0:
-        bpoints.appendleft((cx, cy))
-    elif color_index == 1:
-        gpoints.appendleft((cx, cy))
-    elif color_index == 2:
-        rpoints.appendleft((cx, cy))
-    elif color_index == 3:
-        ypoints.appendleft((cx, cy))
+                                color_index = 3  # Yellow
 
-    # Draw lines on the canvas based on the detected points.
-    points = [bpoints, gpoints, rpoints, ypoints]
-    for i in range(len(points)):
-        for j in range(1, len(points[i])):
-            if points[i][j - 1] is None or points[i][j] is None:
-                continue
-            cv2.line(image, points[i][j - 1], points[i][j], colors[i], 2)
+        # Append the detected finger tip coordinates to respective color deques.
+        if color_index == 0:
+            bpoints.appendleft((cx, cy))
+        elif color_index == 1:
+            gpoints.appendleft((cx, cy))
+        elif color_index == 2:
+            rpoints.appendleft((cx, cy))
+        elif color_index == 3:
+            ypoints.appendleft((cx, cy))
 
-    # Combine the paint window and camera feed images for display.
-    combined_image = np.vstack((paintWindow, image))
+        # Draw lines on the canvas based on the detected points.
+        points = [bpoints, gpoints, rpoints, ypoints]
+        for i in range(len(points)):
+            for j in range(1, len(points[i])):
+                if points[i][j - 1] is None or points[i][j] is None:
+                    continue
+                cv2.line(image, points[i][j - 1], points[i][j], colors[i], 2)
 
-    # Display the frame using Streamlit.
-    frame_placeholder.image(combined_image, channels="RGB")
+        # Combine the paint window and camera feed images for display.
+        combined_image = np.vstack((paintWindow, image))
 
-cap.release()
+        # Display the frame using Streamlit.
+        frame_placeholder.image(combined_image, channels="RGB")
 
-
-
-
-
+    cap.release()
+else:
+    st.error("No camera found. Please check your camera connections and permissions.")
